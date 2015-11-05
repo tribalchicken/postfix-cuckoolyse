@@ -16,6 +16,7 @@ import sys
 import magic
 import requests
 import logging
+import hashlib
 
 logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s',filename='/tmp/cuckoolyse.log',filemode='a')
 
@@ -32,7 +33,7 @@ mtypes = [
          ]
 
 #REST URL for Cuckoo submission
-url = "http://YOUR_CUCKOO_ADDR:8090/tasks/create/file"
+url = "http://YOUR_CUCKOO_ADDR:8090"
 
 
 # Submit the sample to cuckoo
@@ -79,19 +80,36 @@ def cuckoolyse(msg):
             )
 
             try:
-                logging.info("Submitting to cuckoo via %s" % (url))
-                # Send request
-                response = requests.post(url, files=files, data=data)
-                json = response.json()
-                logging.debug("Received JSON response: %s" % (json))
+		hash = hashlib.sha256()
+		hash.update(attachment)
+		shasum = hash.hexdigest()
+                logging.info("Checking if %s has already been analysed..." % (shasum))
+		
+		# Request file info from Cuckoo
+		response = requests.get("%s/files/view/sha256/%s" % (url,shasum))
+		# 404 Response indicates hash does not exist
+		# 200 indicates file already exists
+		if response.status_code() == 200:
+		    finfo = response.json()
+		    logging.info("File has already been analysed, not submitting ()")
+		elif response.status_code() == 404:
+		                
 
-                # Task ID from Cuckoo
-                task_id = json["task_id"]
+                    logging.info("Submitting to cuckoo via %s" % (url))
+                    # Send request
+                    response = requests.post("%s/tasks/create/file" % (url), files=files, data=data)
+                    json = response.json()
+                    logging.debug("Received JSON response: %s" % (json))
 
-                if task_id is None:
-                    raise Exception("Cuckoo did not response with a Task ID. Assuming submission failure")
-                logging.info("SUCCESS: Submitted to remote Cuckoo instance as task ID %i" % (task_id))
-                return 0
+                    # Task ID from Cuckoo
+                    task_id = json["task_id"]
+
+                    if task_id is None:
+                        raise Exception("Cuckoo did not response with a Task ID. Assuming submission failure")
+                    logging.info("SUCCESS: Submitted to remote Cuckoo instance as task ID %i" % (task_id))
+                    return 0
+		else:
+		    raise Exception("Unexpected reponse code whilst requesting file details")
 
             except Exception as e:
                 logging.error("Unable to submit file to Cuckoo: %s" %(e))
