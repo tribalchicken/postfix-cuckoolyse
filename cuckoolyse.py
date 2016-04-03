@@ -30,11 +30,15 @@ mtypes = [
             'application/zip',
             'application/javascript',
             'application/x-rar-compressed'
+            'text/javascript',
+            'application/x-compressed',
          ]
 
 #REST URL for Cuckoo submission
 url = "http://YOUR_CUCKOO_ADDR:8090"
 
+# Prefix to prepend to filename in submission
+prefix = "AUTOSUBMIT-"
 
 # Submit the sample to cuckoo
 def cuckoolyse(msg):
@@ -63,7 +67,7 @@ def cuckoolyse(msg):
             logging.info("Found attachment %s of type %s from %s" %(part.get_filename(), mtype, msg['from']))
 
             # Multipart POST for Cuckoo API
-            files = {"file":("AUTOSUBMIT: " +part.get_filename(), attachment)}
+            files = {"file":(prefix +part.get_filename(), attachment)}
 
             # May wish to set some cuckoo options?
             data = dict(
