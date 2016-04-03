@@ -1,6 +1,6 @@
 # postfix-cuckoolyse
 
-Article with a better explanation here:
+Article with a better explanation here: https://tribalchicken.com.au/technical/automated-mail-server-cuckoo-analysis-v2-0/
 
 This is a simple script used with Postfix to grab email from a Pipe, scan for interesting attachments and automatically submit the attachment to Cuckoo.
 
